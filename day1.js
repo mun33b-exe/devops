@@ -37,8 +37,23 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (req.method === 'GET' && req.url === '/about') {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        const aboutMe = {
+            name: 'Muhammad Muneeb Rehman',
+            role: 'Developer',
+            skills: ['Node.js', 'JavaScript', 'API Development'],
+            currentProject: 'Learning HTTP Server Development',
+            location: 'Working on day1.js'
+        };
+        res.end(JSON.stringify(aboutMe, null, 2));
+        return;
+    }
+
     // 3. Fallback for unknown routes
     res.statusCode = 404;
+    res.end('Error: Not Found');
     res.end('Error: Not Found');
 });
 

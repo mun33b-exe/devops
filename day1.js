@@ -160,7 +160,78 @@ http.createServer(async (req, res) => {
 });
 
 
+// Logout module
+const sessions = new Map(); // Store active sessions
 
+// Generate simple session token
+function generateToken(username) {
+    return Buffer.from(`${username}:${Date.now()}:${Math.random()}`).toString('base64');
+}
+
+// Modified login to create session
+async function handleAuthWithSession(req, res) {
+    if (req.url === '/auth/login' && req.method === 'POST') {
+        try {
+            const { username, password } = await parseBody(req);
+            
+            const user = users.get(username);
+            if (!user || user.password !== password) {
+                res.statusCode = 401;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid credentials' }));
+                return true;
+            }
+            
+            const token = generateToken(username);
+            sessions.set(token, { username, loginTime: Date.now() });
+            
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: 'Login successful', username, token }));
+            return true;
+        } catch (e) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            return true;
+        }
+    }
+    
+    if (req.url === '/auth/logout' && req.method === 'POST') {
+        try {
+            const { token } = await parseBody(req);
+            
+            if (!token) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Token required' }));
+                return true;
+            }
+            
+            if (!sessions.has(token)) {
+                res.statusCode = 401;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid or expired token' }));
+                return true;
+            }
+            
+            const session = sessions.get(token);
+            sessions.delete(token);
+            
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: 'Logout successful', username: session.username }));
+            return true;
+        } catch (e) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 // const http = require('http');
 

@@ -115,6 +115,52 @@ http.createServer((req, res)=>{
 
 
 
+// Login module integration
+http.createServer(async (req, res) => {
+    // Try authentication routes first
+    const authHandled = await handleAuth(req, res);
+    if (authHandled) return;
+    
+    // Existing routes
+    if (req.url === '/' && req.method === "GET") {
+        res.end("This is / url");
+    }
+    else if (req.url === '/health' && req.method === "GET") {
+        res.end("This is /health url");
+    }
+    else if (req.url === '/about' && req.method === "GET") {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ name: 'Muhammad Muneeb Rehman', role: 'Developer' }));
+    }
+    else if (req.url === '/api/data' && req.method === "GET") {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ message: 'API data', timestamp: Date.now() }));
+    }
+    else if (req.url === '/html' && req.method === "GET") {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/html');
+        res.end('<h1>Welcome</h1><p>This is HTML response</p>');
+    }
+    else if (req.url === '/redirect' && req.method === "GET") {
+        res.statusCode = 302;
+        res.setHeader('Location', '/');
+        res.end();
+    }
+    else {
+        res.statusCode = 404;
+        res.end("Error: Not Found");
+    }
+}).listen(8080, () => {
+    console.log('Server running on port 8080');
+    console.log('Authentication endpoints available:');
+    console.log('- POST /auth/register');
+    console.log('- POST /auth/login');
+});
+
+
+
 
 // const http = require('http');
 

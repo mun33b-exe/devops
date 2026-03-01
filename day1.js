@@ -290,6 +290,72 @@ async function handleDeleteAccount(req, res) {
     return false;
 }
 
+
+// Edit account module
+async function handleEditAccount(req, res) {
+    if (req.url === '/auth/edit' && req.method === 'PUT') {
+        try {
+            const { username, currentPassword, newPassword, token } = await parseBody(req);
+            
+            if (!username || !currentPassword) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Username and current password required' }));
+                return true;
+            }
+            
+            const user = users.get(username);
+            if (!user) {
+                res.statusCode = 404;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'User not found' }));
+                return true;
+            }
+            
+            if (user.password !== currentPassword) {
+                res.statusCode = 401;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid credentials' }));
+                return true;
+            }
+            
+            if (!newPassword || newPassword.length < 1) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'New password required' }));
+                return true;
+            }
+            
+            // Update password
+            user.password = newPassword;
+            user.updatedAt = Date.now();
+            users.set(username, user);
+            
+            // Invalidate all sessions for this user for security
+            if (token) {
+                sessions.delete(token);
+            }
+            for (const [sessionToken, session] of sessions.entries()) {
+                if (session.username === username) {
+                    sessions.delete(sessionToken);
+                }
+            }
+            
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: 'Password updated successfully', username }));
+            return true;
+        } catch (e) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 // const http = require('http');
 
 // const server = http.createServer((req, res) => {

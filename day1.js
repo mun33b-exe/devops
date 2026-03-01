@@ -233,6 +233,63 @@ async function handleAuthWithSession(req, res) {
     return false;
 }
 
+
+// Delete account module
+async function handleDeleteAccount(req, res) {
+    if (req.url === '/auth/delete' && req.method === 'DELETE') {
+        try {
+            const { username, password, token } = await parseBody(req);
+            
+            if (!username || !password) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Username and password required' }));
+                return true;
+            }
+            
+            const user = users.get(username);
+            if (!user) {
+                res.statusCode = 404;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'User not found' }));
+                return true;
+            }
+            
+            if (user.password !== password) {
+                res.statusCode = 401;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid credentials' }));
+                return true;
+            }
+            
+            // Delete user
+            users.delete(username);
+            
+            // Delete all sessions for this user
+            if (token) {
+                sessions.delete(token);
+            }
+            for (const [sessionToken, session] of sessions.entries()) {
+                if (session.username === username) {
+                    sessions.delete(sessionToken);
+                }
+            }
+            
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: 'Account deleted successfully', username }));
+            return true;
+        } catch (e) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 // const http = require('http');
 
 // const server = http.createServer((req, res) => {

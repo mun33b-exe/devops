@@ -356,6 +356,62 @@ async function handleEditAccount(req, res) {
     return false;
 }
 
+
+// Profile module
+async function handleProfile(req, res) {
+    if (req.url === '/auth/profile' && req.method === 'GET') {
+        try {
+            const authHeader = req.headers['authorization'];
+            
+            if (!authHeader) {
+                res.statusCode = 401;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Authorization token required' }));
+                return true;
+            }
+            
+            const token = authHeader.replace('Bearer ', '');
+            const session = sessions.get(token);
+            
+            if (!session) {
+                res.statusCode = 401;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid or expired token' }));
+                return true;
+            }
+            
+            const user = users.get(session.username);
+            if (!user) {
+                res.statusCode = 404;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'User not found' }));
+                return true;
+            }
+            
+            const profile = {
+                username: session.username,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt || null,
+                loginTime: session.loginTime
+            };
+            
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: 'Profile retrieved successfully', profile }));
+            return true;
+        } catch (e) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Internal server error' }));
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+
+
 // const http = require('http');
 
 // const server = http.createServer((req, res) => {

@@ -1,3 +1,82 @@
+// Simple authentication API with in-memory user storage
+const users = new Map();
+
+// Helper function to parse JSON body
+function parseBody(req) {
+    return new Promise((resolve, reject) => {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                resolve(JSON.parse(body));
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+}
+
+// Authentication middleware
+async function handleAuth(req, res) {
+    if (req.url === '/auth/register' && req.method === 'POST') {
+        try {
+            const { username, password } = await parseBody(req);
+            
+            if (!username || !password) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Username and password required' }));
+                return true;
+            }
+            
+            if (users.has(username)) {
+                res.statusCode = 409;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'User already exists' }));
+                return true;
+            }
+            
+            users.set(username, { password, createdAt: Date.now() });
+            res.statusCode = 201;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: 'User registered successfully', username }));
+            return true;
+        } catch (e) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            return true;
+        }
+    }
+    
+    if (req.url === '/auth/login' && req.method === 'POST') {
+        try {
+            const { username, password } = await parseBody(req);
+            
+            const user = users.get(username);
+            if (!user || user.password !== password) {
+                res.statusCode = 401;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Invalid credentials' }));
+                return true;
+            }
+            
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: 'Login successful', username }));
+            return true;
+        } catch (e) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+
 const http = require('http');
 http.createServer((req, res)=>{
     if (req.url=='/' && req.method=="GET") {
